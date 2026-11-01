@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DefectIQ Lite | Experimental Fabric Inspection Assistant</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="assets/favicon.svg" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div>
+        <div class="brand">
+          <div class="brand-mark">DQ</div>
+          <div>
+            <div class="brand-name">DefectIQ Lite</div>
+            <div class="brand-sub">Experimental fabric inspection assistant</div>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <button class="nav-link active" data-page="dashboard">Dashboard</button>
+          <button class="nav-link" data-page="inspection">New Inspection</button>
+          <button class="nav-link" data-page="history">Inspection History</button>
+          <button class="nav-link" data-page="about">About &amp; Limitations</button>
+        </nav>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="version">v0.1 • Browser prototype</div>
+        <p>Results require human verification.</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section id="page-dashboard" class="page active">
+        <header class="page-header">
+          <div>
+            <h1>Inspection Dashboard</h1>
+            <p>A browser workspace for reviewing candidate fabric anomalies.</p>
+          </div>
+        </header>
+
+        <div class="metrics">
+          <article class="metric-card"><span id="metric-total">0</span><label>Total inspections</label></article>
+          <article class="metric-card"><span id="metric-confirmed">0</span><label>Confirmed defects</label></article>
+          <article class="metric-card"><span id="metric-rejected">0</span><label>Rejected candidates</label></article>
+          <article class="metric-card"><span id="metric-review">0</span><label>Marked for review</label></article>
+        </div>
+
+        <div class="dashboard-grid">
+          <section class="card">
+            <h2>Recent inspections</h2>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Inspection ID</th><th>Date &amp; time</th><th>File</th><th>Candidates</th><th>Decision</th></tr>
+                </thead>
+                <tbody id="recent-table"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>How to use</h2>
+            <ol>
+              <li>Open <strong>New Inspection</strong>.</li>
+              <li>Upload or capture a plain cotton fabric image.</li>
+              <li>Adjust sensitivity and run the visual check.</li>
+              <li>Review each candidate region manually.</li>
+              <li>Save the inspection and export records if needed.</li>
+            </ol>
+            <div class="notice">
+              Candidate regions are visual anomalies, not confirmed defects.
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="page-inspection" class="page">
+        <header class="page-header">
+          <div>
+            <h1>New Fabric Inspection</h1>
+            <p>Upload a fabric photograph or use a supported device camera.</p>
+          </div>
+        </header>
+
+        <div class="notice large">
+          <strong>Experimental assistant:</strong> highlighted regions are possible visual anomalies and must be verified by a trained inspector.
+        </div>
+
+        <section class="card">
+          <div class="upload-tabs">
+            <button class="tab active" data-tab="upload">Upload image</button>
+            <button class="tab" data-tab="camera">Camera capture</button>
+          </div>
+
+          <div id="tab-upload" class="tab-panel active">
+            <label class="dropzone" for="fabric-input">
+              <input type="file" id="fabric-input" accept="image/jpeg,image/jpg,image/png" hidden />
+              <strong>Click to upload</strong>
+              <span>JPG, JPEG or PNG • Maximum 15 MB</span>
+            </label>
+          </div>
+
+          <div id="tab-camera" class="tab-panel">
+            <input type="file" id="camera-input" accept="image/*" capture="environment" hidden />
+            <button class="button secondary" id="camera-button">Open camera</button>
+          </div>
+
+          <div id="file-details" class="file-details hidden"></div>
+        </section>
+
+        <section class="card hidden" id="inspection-controls">
+          <div class="controls">
+            <div>
+              <label for="sensitivity">Detection sensitivity: <span id="sensitivity-value">50</span></label>
+              <input type="range" id="sensitivity" min="0" max="100" value="50" />
+              <p class="hint">Higher sensitivity finds more candidate regions but may increase false positives.</p>
+            </div>
+            <button class="button primary" id="run-inspection">Run visual inspection</button>
+          </div>
+        </section>
+
+        <section class="card hidden" id="results-card">
+          <div class="result-header">
+            <h2>Candidate regions</h2>
+            <span class="chip" id="candidate-count">0 candidates</span>
+          </div>
+          <p class="hint">
+            The displayed value is a local visual-deviation indicator. It is not a defect probability or AI confidence score.
+          </p>
+
+          <div class="image-grid">
+            <div>
+              <h3>Uploaded image</h3>
+              <canvas id="original-canvas"></canvas>
+            </div>
+            <div>
+              <h3>Candidate regions highlighted</h3>
+              <canvas id="annotated-canvas"></canvas>
+            </div>
+          </div>
+
+          <div id="candidate-list"></div>
+        </section>
+
+        <section class="card hidden" id="save-card">
+          <h2>Save inspection</h2>
+          <label for="overall-decision">Overall human review decision</label>
+          <select id="overall-decision">
+            <option>Pending Review</option>
+            <option>Confirmed Defect</option>
+            <option>Rejected / No Defect</option>
+            <option>Marked for Further Inspection</option>
+          </select>
+
+          <label for="overall-notes">Inspector comments</label>
+          <textarea id="overall-notes" rows="4" placeholder="Describe lighting, fabric batch, observed issue, or follow-up action."></textarea>
+
+          <div class="save-actions">
+            <button class="button primary" id="save-inspection">Save inspection record</button>
+            <button class="button secondary hidden" id="download-report">Download PDF report</button>
+          </div>
+          <div id="save-status"></div>
+        </section>
+      </section>
+
+      <section id="page-history" class="page">
+        <header class="page-header">
+          <div>
+            <h1>Inspection History</h1>
+            <p>Records are stored privately in this browser using localStorage.</p>
+          </div>
+          <button class="button secondary" id="export-csv">Export CSV</button>
+        </header>
+
+        <section class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Inspection ID</th><th>Date &amp; time</th><th>File</th><th>Candidates</th><th>Decision</th><th>Notes</th><th></th></tr>
+              </thead>
+              <tbody id="history-table"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="page-about" class="page">
+        <header class="page-header">
+          <div>
+            <h1>About &amp; Limitations</h1>
+            <p>An honest description of DefectIQ Lite v0.1.</p>
+          </div>
+        </header>
+
+        <div class="about-grid">
+          <section class="card">
+            <h2>What it does</h2>
+            <p>DefectIQ Lite is a browser-based image-inspection assistant for plain cotton handloom fabric. It highlights visually unusual local regions so an inspector can review them.</p>
+            <p>It is a human-in-the-loop tool: software proposes areas for attention, while a trained inspector makes the final decision.</p>
+          </section>
+
+          <section class="card">
+            <h2>How the engine works</h2>
+            <p>The browser prototype analyses local pixel contrast and texture deviation. It compares each area with its surrounding neighbourhood, identifies unusually different regions, groups them, and draws candidate boxes.</p>
+            <p>This is <strong>not</strong> a trained AI model. No accuracy, precision, recall, or defect-probability claim is made.</p>
+          </section>
+
+          <section class="card">
+            <h2>What it cannot do</h2>
+            <ul>
+              <li>Reliably detect every hole, broken weave, missing yarn, stain, or weaving defect.</li>
+              <li>Detect defects hidden by folds, shadows, blur, glare, or poor lighting.</li>
+              <li>Replace tactile inspection or fabric-domain expertise.</li>
+              <li>Confirm whether a highlighted region is truly a defect.</li>
+            </ul>
+          </section>
+
+          <section class="card">
+            <h2>Future improvements</h2>
+            <ul>
+              <li>Collect consented, labelled fabric images.</li>
+              <li>Build a validated plain-cotton dataset.</li>
+              <li>Add a lightweight PyTorch anomaly-detection model.</li>
+              <li>Measure performance only on a properly separated test dataset.</li>
+              <li>Add defect-type tagging and region-level reporting.</li>
+            </ul>
+          </section>
+        </div>
+
+        <div class="notice large">
+          <strong>Product status:</strong> DefectIQ Lite v0.1 is an early experimental prototype. It is not commercially ready and does not claim validated performance or market adoption.
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
